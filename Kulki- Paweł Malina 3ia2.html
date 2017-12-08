@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+
+
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="author" content="Paweł Malina">
+    <link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet">
+    <title>Kulki- Paweł Malina</title>
+    <style>
+        body {
+            padding-left: 30%;
+            min-width: 500px;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        .plansza {
+            float: left;
+            width: 50px;
+            height: 50px;
+            border: 1px solid black;
+            text-align: center;
+            font-size: 2em;
+            border-radius: 7px;
+            background-color: rgba(50, 50, 50, 0.2);
+        }
+
+        div.kulka {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            border-radius: 100%;
+            border: 2px solid black;
+            margin: 2.5px 0px 0px 2.5px;
+            box-shadow: inset 1px -2px 20px 1px rgba(255, 255, 255, 0.4);
+        }
+
+        div.cos {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            border-radius: 100%;
+            border: 2px solid black;
+            margin: 2.5px 0px 0px 2.5px;
+            box-shadow: inset 1px -2px 20px 1px rgba(255, 255, 255, 0.4);
+            display: inline-block;
+        }
+
+        .plansza .kulka {
+            cursor: pointer;
+        }
+
+        .red {
+            background-color: chartreuse;
+        }
+
+        .green {
+            background-color: crimson;
+        }
+
+        .yellow {
+            background-color: darkred;
+        }
+
+        .blue {
+            background-color: blueviolet;
+        }
+
+        .orange {
+            background-color: blue;
+        }
+
+        .black {
+            background-color: gold;
+        }
+
+        .grey {
+            background-color: black;
+        }
+
+        #next {
+            position: absolute;
+            left: 25%;
+            width: auto;
+            bottom: 5%;
+            height: 40px;
+        }
+
+        #gra {
+            border: 2px solid black;
+            width: 300px;
+            min-height: 150px;
+            position: relative;
+            padding: 5px;
+            left: 8%;
+            border-radius: 5%;
+        }
+
+        #next .kulka {
+            display: inline-block;
+            border: 2px solid black;
+        }
+
+        #punkty {
+            width: 25%;
+            min-height: 40px;
+            position: absolute;
+            right: 15%;
+            top: 12%;
+            font-size: 200%;
+        }
+
+        #finish {
+            position: absolute;
+            width: 100%;
+            height: 100vh;
+            top: 0;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 9999999999;
+        }
+
+        #finish h1 {
+            padding-top: 35vh;
+            color: white;
+            font-size: 300%;
+            text-align: center;
+        }
+    </style>
+    <script>
+        //http://www.wklejto.pl/305186
+        document.addEventListener("DOMContentLoaded", function (event) {
+            var IleTab = 9;
+            var IlePol = 90;
+            var color = ["red", "yellow", "blue", "green", "orange", "black", "grey"];
+            var tab = []; //tablica przetrzymująca punkty
+            var tab2 = []; //tablica przetrzymująca "ścieżki"
+            var klik = 0; //zmienna przetrzymuje numer kliknięcia
+            var start = 0; //zmienna przechowuje id punktu startowego
+            var meta = "0_0"; //zmienna przechowuje id punktu końcowego
+            var loop = true; //zmienna odpowiadająca za zwiększenie indexu przy zalewaniu i przerwaniu zalewania
+            var loop2 = true; //zmienna odpowiadająca za zmniejszanie indexu przy odnajdywaniu najkrótszej drogi i przerwaniu zalewania
+            var loop3 = true;
+            var loop4 = true;
+            var pom = []; //zmienna przetrzymująca punkty potrzebne w szukaniu najkrótszej drogi
+            var pom2 = []; //zmienna przetrzymująca punkty potrzebne w szukaniu najkrótszej drogi
+            var index = 1; //zmienna "zalewająca"
+            var to = ''; //zmienna przetrzymująca aktualnie kliknięty obiekt
+            var next = 0; //zmienna odpowiedzialna za loowanie nasępnych kulek
+            var los4 = []; //tablica z indexami wylosowanych kolorów 
+            var los3 = [Math.floor((Math.random() * color.length)), Math.floor((Math.random() * color.length)), Math.floor((Math.random() * color.length))]; //tablica z indexami wykolosanych kolorów 
+            var pomClick = 0;
+            var anim = []; //indexy animacji na planszy
+            var animacja; //zmienna odpowiedzialana za animacje 
+            var spr = []; //tablica przetrzymująca indexy kólek "pod rząd"
+            var spr2 = []; //tablica przetrzymująca indexy kólek "pod rząd"            
+            var czyKoniec = 0; // zmienna sprawdzająca ile pól na planszy jest zajętych 
+            var punkty;
+            var iloscPunktow = 0;
+            var dodacKulki = true;
+            //pętla tworzy tablicę w tablicy pierwszej i drugiej
+            for (var i = 0; i < IleTab; i++) {
+                tab[i] = [];
+                for (var j = 0; j < IleTab; j++)
+                    tab[i][j] = " ";
+            }
+            for (var i = 0; i < IleTab; i++) {
+                tab2[i] = [];
+                for (var j = 0; j < IleTab; j++)
+                    tab2[i][j] = " ";
+            }
+
+
+            var b = -1;
+            var c = 0;
+
+            //dodawanie elementów div na stronę
+            struktura();
+            dodajX()
+            dodaj();
+            removeClick();
+            //funkcja budująca strukturę gry
+            function struktura() {
+                var div = document.createElement("div"); //element przetrzymujący następny ruch i punkty
+                div.setAttribute("id", "gra");
+                div.innerHTML = "<h2>Twoje punkty: </h2>";
+                var punkt = document.createElement("div"); //element na punkty
+                punkt.setAttribute("id", "punkty");
+                div.appendChild(punkt);
+                div.innerHTML += "<h2>Twoje następne kulki: </h2>";
+                var nastepny = document.createElement("div"); //element na następny ruch 
+                nastepny.setAttribute("id", "next");
+                div.appendChild(nastepny);
+                document.body.appendChild(div);
+                punkty = document.getElementById("punkty");
+                punkty.innerHTML = "0";
+                for (o = 0; o < IlePol; o++) {
+                    var div = document.createElement("div"); //tworzenie elementu w każdym przebiegu pętli
+                    //jeżeli dodano już 4 elementy dodaję diva "clear: both"
+                    if (o % 10 == 0) {
+                        var br = document.createElement("br"); //tworzenie elementu <br>                  
+                        b++ //dodanie 1 do zmiennej odpowiedzialnej za wiersz
+                        c = 0; //wyzerowanie zmiennej odpowiadajacej za kolumnę
+                        document.body.appendChild(br).style.clear = "both"; //dodanie elementu na stronę
+                    }
+                    else {
+                        div.setAttribute("id", b + "_" + c); //doanie id do diva
+                        div.addEventListener("click", click);
+                        c++; //zwiększenie zmiennej odpowiadajacej za kolumnę
+                        document.body.appendChild(div).className = "plansza"; //dodanie elementu na stronę, dodanie klasy "plansza"
+                    }
+                }
+            }
+            //dodanie do gry pól na punkty i następne ruchy
+            //funkcja dodająca treść do elementów juz na stronie
+            function dodaj() {
+                var k = 0;
+                var j = -1;
+                var plansza = document.getElementsByClassName("plansza"); //uchwyt na wszystkie elementy div.plansza na stronie
+                for (var i = 0; i < plansza.length; i++) {
+                    if (i % 9 == 0) {
+                        j++ //dodanie 1 do zmiennej odpowiedzialnej za wiersz
+                        k = 0; //wyzerowanie zmiennej odpowiadajacej za kolumnę
+                    }
+                    plansza[i].innerHTML = tab[j][k]; //dodanie treści do elementu
+                    k++;
+                }
+                plansza = document.getElementsByClassName("plansza"); //uchwyt na wszystkie elementy div.plansza na stronie
+                //dodanie klikalności na elementy z kulkami
+                for (o = 0; o < plansza.length; o++) {
+                    if (plansza[o].innerHTML != 0) {
+                        plansza[o].addEventListener("click", click);
+                    }
+                }
+            }
+            //funkcja losuje dwie liczby 3 krotnie, zamienia to miejsce w tablicy na 'X'
+            function dodajX() {
+                document.getElementById("next").innerHTML = " "; //Wyczyszczenie pola next
+
+                if (next % 2 == 0) {
+                    for (var i = 0; i < 3; i++) {
+                        los = Math.floor((Math.random() * IleTab)); //losowanie miejsca do wstawienia kulki
+                        los2 = Math.floor((Math.random() * IleTab)); //losowanie miejsca do wstawienia kulki
+                        los4[i] = Math.floor((Math.random() * color.length)); //losowanie koloru 
+
+                        if (tab[los][los2] == 0) {
+                            tab[los][los2] = '<div class="kulka ' + color[los3[i]] + '"> </div>'; //dodanie kulki w wylosowane miejsce, o wylosowanym kolorze
+                            tab2[los][los2] = '<div class="kulka ' + color[los3[i]] + '"> </div>'; //dodanie kulki w wylosowane miejsce, o wylosowanym kolorze
+                        }
+                        else { i--; }
+                    }
+                    for (var i = 0; i < 3; i++) {
+                        los4[i] = Math.floor((Math.random() * color.length)); //losowanie koloru 
+                        document.getElementById("next").innerHTML += '<div class="cos ' + color[los4[i]] + '"> </div>'; //dodanie kulek do pola next
+                    }
+                    next++;
+
+                }
+                else {
+                    document.getElementById("next").innerHTML = " ";
+                    for (var i = 0; i < 3; i++) {
+                        los = Math.floor((Math.random() * IleTab)); //losowanie miejsca do wstawienia kulki
+                        los2 = Math.floor((Math.random() * IleTab)); //losowanie miejsca do wstawienia kulki
+                        los3[i] = Math.floor((Math.random() * color.length)); //losowanie koloru 
+                        if (tab[los][los2] == 0) {
+                            tab[los][los2] = '<div class="kulka ' + color[los4[i]] + '"> </div>'; //dodanie kulki w wylosowane miejsce, o wylosowanym kolorze
+                            tab2[los][los2] = '<div class="kulka ' + color[los4[i]] + '"> </div>'; //dodanie kulki w wylosowane miejsce, o wylosowanym kolorze
+                        }
+                        else { i--; }
+                    }
+                    for (var i = 0; i < 3; i++) {
+                        los3[i] = Math.floor((Math.random() * color.length)); //losowanie koloru 
+                        document.getElementById("next").innerHTML += '<div class="cos ' + color[los3[i]] + '"> </div>'; //dodanie kulek do pola next
+                    }
+                    next = 0;
+                }
+
+                zeruj();
+            }
+            //funkcja eventu click
+            function click() {
+                removeClick();
+                //wyzerowanie zmiennych
+                zerujZmienne();
+                zeruj();
+
+                //sprawdzam czy element zawiera kulke, jeśli tak to ustawiam ją na punkt startowy po kliknięciu
+                to = document.getElementById(this.id);
+                if (pomClick % 2 != 0 && to != null && to.innerHTML != 0 && to.id == start) {
+                    document.getElementById(this.id).children[0].style.width = "40px";
+                    document.getElementById(this.id).children[0].style.height = "40px";
+                    document.getElementById(this.id).children[0].style.margin = "2.5px 2.5px";
+                    tab2[this.id[0]][this.id[2]] = 0;
+                    zeruj();
+                    plansza = document.getElementsByTagName("div");
+                    for (o = 0; o < plansza.length; o++) {
+                        plansza[o].removeEventListener("mouseover", mouseOver)
+                        plansza[o].removeEventListener("mouseout", mouseOut);
+                    }
+                    next = document.getElementById("next");
+                    next.children[0].removeEventListener("mouseover", mouseOver);
+                    next.children[1].removeEventListener("mouseover", mouseOver);
+                    next.children[2].removeEventListener("mouseover", mouseOver);
+                    klik = 0;
+
+                }
+
+                if (pomClick % 2 == 0 && to != null && to.innerHTML != 0) { //jeśli trafiam na kulkę 
+                    dodaj();
+                    //dodanie punktu startowego
+                    start = this.id; //zmieniam punkt startowy
+                    document.getElementById(this.id).children[0].style.width = "45px";
+                    document.getElementById(this.id).children[0].style.height = "45px";
+                    document.getElementById(this.id).children[0].style.margin = "0px 0px";
+                    tab2[this.id[0]][this.id[2]] = "S"
+                    plansza = document.getElementsByClassName("plansza");
+                    //dodanie klikalności na resztę elementów
+                    for (o = 0; o < plansza.length; o++) {
+                        plansza[o].addEventListener("click", click);
+                    }
+                    removeBallClick();
+                    klik = 1;
+                }
+
+                if (to != null && to.innerHTML != 0 && to.id != start) {
+                    kulki = document.getElementsByClassName("kulka");
+                    for (var i = 0; i < kulki.length; i++) {
+                        kulki[i].style.width = "40px";
+                        kulki[i].style.height = "40px";
+                        kulki[i].style.margin = "2.5px 2.5px";
+                        kulki[i].removeEventListener("click", click);
+                    }
+
+                    //dodanie punktu startowego
+                    start = this.id; //zmieniam punkt startowy
+                    document.getElementById(this.id).children[0].style.width = "45px";
+                    document.getElementById(this.id).children[0].style.height = "45px";
+                    document.getElementById(this.id).children[0].style.margin = "0px 0px";
+                    tab2[this.id[0]][this.id[2]] = "S"
+                    plansza = document.getElementsByClassName("plansza");
+                    //dodanie klikalności na resztę elementów
+                    for (o = 0; o < plansza.length; o++) {
+                        plansza[o].addEventListener("click", click);
+                    }
+                    removeBallClick();
+                    klik = 1;
+                    pomClick = 4;
+                }
+
+                //dodanie punktu meta
+                if (to != null && to.innerHTML == " ") {
+                    tab2[this.id[0]][this.id[2]] = "M";
+                    meta = this.id;
+                    //po ustawieniu punktu "mety" usuwam eventy mouseover, mouseout z elementów
+                    for (o = 0; o < plansza.length; o++) {
+                        plansza[o].removeEventListener("mouseover", mouseOver)
+                        plansza[o].removeEventListener("mouseout", mouseOut);
+                    }
+                    short();
+                    przenies(); //wywołanie funkcji przenoszącej elementy z punktu "start" na punkt "meta"
+                    klik = 0;
+                }
+
+                if (klik == 1) {
+                    onMouseOver(); //wywołanie funkcji dodającej mouseover, mouseout
+                }
+                pomClick++;
+
+            }
+            function removeBallClick() {
+                kulki = document.getElementsByClassName("kulka");
+                for (var i = 0; i < kulki.length; i++) {
+                    kulki[i].removeEventListener("click", click);
+                }
+            }
+            //dodanie eventu mouseover/mouseout na elementy
+            function onMouseOver() {
+                plansza = document.getElementsByTagName("div");
+                for (o = 0; o < plansza.length; o++) {
+                    plansza[o].addEventListener("mouseover", mouseOver) //dodanie eventu mouseover na elementy
+                    plansza[o].addEventListener("mouseover", mouseOut); //dodanie eventu mouseout na elementy
+                }
+            }
+            //funkcja najechania myszą na element
+            function mouseOver() {
+                to = document.getElementById(this.id);
+                if (to == null) { }
+                else {
+                    if (to.innerHTML != 0) {
+                        colorWayOnWhite();
+                        zeruj();
+
+                    }
+                    else {
+                        colorWayOnWhite();
+                        zerujZmienne();
+                        zeruj();
+                        tab2[this.id[0]][this.id[2]] = "M";
+                        meta = this.id;
+                        short();
+                    }
+                }
+
+            }
+            function mouseOut() { }
+            //funkcja usuwająca cliknięcie na elementy
+            function removeClick() {
+                plansza = document.getElementsByClassName("plansza");
+                for (var i = 0; i < plansza.length; i++) {
+                    //jeżeli trafi na "X" w tablicy usuwa możliwość kliknięcia w niego
+                    if (plansza[i].innerHTML == 0) {
+                        document.getElementById(plansza[i].id).removeEventListener("click", click);
+                    }
+                }
+            }
+            //funkcja szukająca najkrótszej drogi
+            function short() {
+                pom[0] = start;
+                pomLength = pom.length;
+                //pętla sprawdza "zajętość" okienek
+                for (var i = 0; i < pomLength; i++) {
+
+                    punktX = pom[i].split("_")[0]; //index kolumny
+                    punktY = pom[i].split("_")[1]; //index wiersza
+                    punktX = parseInt(punktX);
+                    punktY = parseInt(punktY);
+
+                    //sprawdzenie czy punkt nie jest "metą"
+                    if (punktX + 1 < tab2.length && tab2[punktX + 1][punktY] == "M") {
+                        loop = false;
+                    }
+                    //sprawdzenie czy punkt jest zajęty czy pusty
+                    if (punktX + 1 < tab2.length && tab2[punktX + 1][punktY] == 0) {
+                        tab2[punktX + 1][punktY] = index;
+                        pom.push(punktX + 1 + "_" + punktY); //dodanie id diva do tablicy pomocniczej
+                    }
+                    else { }
+                    //sprawdzenie czy punkt nie jest "metą"
+                    if ((punktX - 1) >= 0 && tab2[punktX - 1][punktY] == "M") {
+                        loop = false;
+                    }
+                    //sprawdzenie czy punkt jest zajęty czy pusty
+                    if ((punktX - 1) >= 0 && tab2[punktX - 1][punktY] == 0) {
+                        tab2[punktX - 1][punktY] = index;
+                        pom.push(punktX - 1 + "_" + punktY); //dodanie id diva do tablicy pomocniczej
+                    }
+                    else { }
+                    //sprawdzenie czy punkt nie jest "metą"
+                    if (tab2[punktX][punktY + 1] == "M") {
+                        loop = false;
+                    }
+                    //sprawdzenie czy punkt jest zajęty czy pusty
+                    if (tab2[punktX][punktY + 1] == 0) {
+                        tab2[punktX][punktY + 1] = index;
+                        pom.push(punktX + "_" + (punktY + 1)); //dodanie id diva do tablicy pomocniczej
+                    }
+                    else { }
+                    //sprawdzenie czy punkt nie jest "metą"
+                    if ((punktY - 1) >= 0 && tab2[punktX][punktY - 1] == "M") {
+                        loop = false;
+                    }
+                    //sprawdzenie czy punkt jest zajęty czy pusty
+                    if ((punktY - 1) >= 0 && tab2[punktX][punktY - 1] == 0) {
+                        tab2[punktX][punktY - 1] = index;
+                        pom.push(punktX + "_" + (punktY - 1)); //dodanie id diva do tab2licy pomocniczej
+                    }
+                    else { }
+
+                }
+
+                if (loop) {
+                    if (index > 30) { //jeżeli index powiększy się do wartości której normalnie nie może osiągnąć
+                        loop2 = false; //przerywam wywoływanie funkcji
+                    }
+                    if (loop2) {
+                        index++; //zwiększenie indexu "zalewania"
+                        short(); //wywołanie funkcji na nowo
+                    }
+                }
+                else {
+                    pom2[0] = meta;
+                    shortWay(pom2)
+                }
+            }
+            //funkcja wyznaczająca najkrótszą trasę
+            function shortWay() {
+                tab2[start[0]][start[2]] = "S";
+                for (var i = 0; i < pom2.length; i++) {
+                    punktX = pom2[i].split("_")[0]; //index kolumny
+                    punktY = pom2[i].split("_")[1]; //index wiersza
+                    punktX = parseInt(punktX);
+                    punktY = parseInt(punktY);
+                    //sprawdzenie czy punkt nie jest "startem"
+                    if (punktX + 1 < tab2.length && tab2[punktX + 1][punktY] == "S") {
+                        loop2 = false;
+                    }
+                    //sprawdzenie czy punkt jest równy index'owi - 1
+                    if (punktX + 1 < tab2.length && tab2[punktX + 1][punktY] == index - 1) {
+                        pom2.push(punktX + 1 + "_" + punktY); //dodanie id diva do tablicy pomocniczej
+                        break;
+                    }
+                    else { }
+                    //sprawdzenie czy punkt nie jest "startem"
+                    if ((punktX - 1) >= 0 && tab2[punktX - 1][punktY] == "S") {
+                        loop2 = false;
+                    }
+                    //sprawdzenie czy punkt jest równy index'owi - 1
+                    if ((punktX - 1) >= 0 && tab2[punktX - 1][punktY] == index - 1) {
+                        pom2.push(punktX - 1 + "_" + punktY); //dodanie id diva do tablicy pomocniczej
+                        break;
+                    }
+                    else { }
+                    //sprawdzenie czy punkt nie jest "startem"
+                    if (tab2[punktX][punktY + 1] == "S") {
+                        loop2 = false;
+                    }
+                    //sprawdzenie czy punkt jest równy index'owi - 1
+                    if (tab2[punktX][punktY + 1] == index - 1) {
+                        pom2.push(punktX + "_" + (punktY + 1)); //dodanie id diva do tablicy pomocniczej
+                        break;
+                    }
+                    else { }
+                    //sprawdzenie czy punkt nie jest "startem"
+                    if ((punktY - 1) >= 0 && tab2[punktX][punktY - 1] == "S") {
+                        loop2 = false;
+                    }
+                    //sprawdzenie czy punkt jest równy index'owi - 1
+                    if ((punktY - 1) >= 0 && tab2[punktX][punktY - 1] == index - 1) {
+                        pom2.push(punktX + "_" + (punktY - 1)); //dodanie id diva do tablicy pomocniczej
+                        break;
+                    }
+                    else { }
+                }
+
+                if (loop2) {
+                    index--; //zmniejszenie indexu "zalewania"
+                    shortWay(); //wywołanie funkcji na nowo
+                }
+                else {
+                    pom2.push(start); //dodanie punktu "startowego" do tablicy
+                    colorWay(); //wywołanie funkcji kolorującej drogę 
+                }
+            }
+            //funkcja kolorująca ściezkę w planszy na rózowo
+            function colorWay() {
+                anim = [];
+                for (var i = 0; i < pom2.length; i++) {
+                    var x = pom2[i].split("_")[0]; //pobranie pierwszej współzędnej
+                    var y = pom2[i].split("_")[1]; //pobranie drugiej współzędnej
+                    if (tab2[x][y] == 0) {
+                    }
+                    else { //jezeli w tablicy to miejsce jest zajęte koloruję drogę
+                        document.getElementById(pom2[i]).style.backgroundColor = "pink";
+                        anim.push(x + "_" + y);
+                    }
+                }
+            }
+            //funkcja przenosząca kulkę na wybrane miejsce 
+            function przenies() {
+
+                plansza = document.getElementsByTagName("div");
+                for (o = 0; o < plansza.length; o++) {
+                    plansza[o].removeEventListener("click", click);
+                    plansza[o].removeEventListener("mouseover", mouseOver)
+                    plansza[o].removeEventListener("mouseout", mouseOut);
+                }
+
+                aIndex = anim.length - 1;
+                animacja = setInterval(anima, 250)
+                colorWayOnWhite(); //pokolorowanie drogi spowrotem na biało
+                zeruj();
+            }
+            //funkcja kolorująca drogę sporwotem na biało
+            function colorWayOnWhite() {
+                pom = [];
+                plansza = document.getElementsByClassName("plansza");
+                for (var i = 0; i < plansza.length; i++) {
+                    plansza[i].style.backgroundColor = "rgba(50, 50, 50, 0.2)";
+                }
+            }
+            //funkcja czyszcząca tablice nr 2
+            function zeruj() {
+                //wyzerowanie tablicy numer 2
+                for (var i = 0; i < IleTab; i++) {
+                    for (var j = 0; j < IleTab; j++)
+                        if (tab[i][j] != 0) {
+                            tab2[i][j] = tab[i][j];
+                        }
+                        else {
+                            tab2[i][j] = " ";
+                        }
+                }
+            }
+            //funkcja zerująca zmienne
+            function zerujZmienne() {
+                pom = [];
+                pom2 = [];
+                index = 1;
+                loop = true;
+                loop2 = true;
+            }
+            //funkcja animująca kulkę
+            function anima() {
+
+                to = document.getElementById(start).children[0]; //pobieram element ze startu(kulka)
+                to.style.position = "absolute"; //dodaje jej pozycja
+                offsetLeft = document.getElementById(anim[aIndex]).offsetLeft; //pobieram odległość elementu od lewej krawędzi ekranu
+                offsetTop = document.getElementById(anim[aIndex]).offsetTop; //pobieram odległość elementu od górnej krawędzi ekranu
+                afterOffsetLeft = document.getElementById(anim[aIndex - 1]).offsetLeft; //pobieram odległość elementu kolejnego od lewej krawędzi ekranu
+                afterOffsetTop = document.getElementById(anim[aIndex - 1]).offsetTop; //pobieram odległość elementu kolejnego od górnej krawędzi ekranu
+
+
+                //sprawdzam czy odległości te są równe
+                if (afterOffsetTop == offsetTop) { }
+                //sprawdzam czy odległości te są różne od siebie
+                else if (afterOffsetTop < offsetTop) {
+                    var przesun = setInterval(function () {
+                        offsetTop--;
+                        to.style.top = offsetTop + "px"; //zmieniam odległość
+                        if (offsetTop <= afterOffsetTop) { //kończę przesuwanie
+                            clearInterval(przesun);
+                        }
+                    }, 4)
+                }
+                else if (afterOffsetTop > offsetTop) {
+                    var przesun = setInterval(function () {
+                        offsetTop++;
+                        to.style.top = offsetTop + "px"; //zmieniam odległość
+                        if (offsetTop >= afterOffsetTop) { //kończę przesuwanie
+                            clearInterval(przesun);
+                        }
+                    }, 4)
+
+                }
+                //sprawdzam czy odległości te są równe                
+                if (afterOffsetLeft == offsetLeft) { }
+                //sprawdzam czy odległości te są różne od siebie
+                else if (afterOffsetLeft < offsetLeft) {
+                    var przesun = setInterval(function () {
+                        offsetLeft--;
+                        to.style.left = offsetLeft + "px"; //zmieniam odległość
+                        if (offsetLeft <= afterOffsetLeft) { //kończę przesuwanie
+                            clearInterval(przesun);
+                        }
+                    }, 4)
+
+                }
+                else if (afterOffsetLeft > offsetLeft) {
+                    var przesun = setInterval(function () {
+                        offsetLeft++;
+                        to.style.left = offsetLeft + "px"; //zmieniam odległość
+                        if (offsetLeft >= afterOffsetLeft) { //kończę przesuwanie
+                            clearInterval(przesun);
+                        }
+                    }, 4)
+
+                }
+
+
+                setTimeout(function () {
+                    aIndex--;
+                    if (aIndex <= 0) {
+                        tab[meta[0]][meta[2]] = tab[start[0]][start[2]]; //przenoszę kulkę z miejsca startu, na metę
+                        tab[start[0]][start[2]] = " "; //zeruję miejsce w tablicy
+                        tab2[start[0]][start[2]] = " "; //zeruję miejsce w tablicy 2
+                        clearInterval(animacja); //kończę animacje
+                        dodaj(); //obrazuję to na stronie 
+                        prawda();
+                        sprawdzBoki();
+                        if (dodacKulki) {
+                            dodajX(); //dodaję nowe kulki                            
+                        }
+                        else {
+                            dodacKulki = true;
+                        }
+                        dodaj(); //obrazuję to na stronie
+                        koniec();
+                    }
+                }, 220)
+            }
+            //funkcja sprawdzająca czy mamy 5 kulek pod rząd w góre i dół
+            function sprawdzBoki() {
+                spr = [];
+                spr[0] = meta;
+                var x = spr[0].split("_")[0]; //pobranie pierwszej współzędnej
+                var y = spr[0].split("_")[1]; //pobranie drugiej współzędnej
+                x = parseInt(x);
+                y = parseInt(y);
+                for (var i = 1; i < 9; i++) {
+                    if (loop) { //sprawdzanie w lewo
+                        if ((x - i) >= 0 && tab[x - i][y] == tab[x][y]) {
+                            spr.push(x - i + "_" + y);
+                        }
+                        else { loop = false; }
+                    }
+
+                    if (loop2) { //sprawdzanie w prawo
+                        if ((x + i) <= 8 && tab[x + i][y] == tab[x][y]) {
+                            spr.push((x + i) + "_" + y);
+                        }
+                        else { loop2 = false }
+                    }
+                    if (loop3) { //sprawdzanie w dół
+                        if ((y - i) >= 0 && tab[x][y - i] == tab[x][y]) {
+                            spr.push(x + "_" + (y - i));
+                        }
+                        else { loop3 = false; }
+                    }
+
+                    if (loop4) { //sprawdzanie w góre
+                        if ((y + i) <= 8 && tab[x][y + i] == tab[x][y]) {
+                            spr.push(x + "_" + (y + i));
+                        }
+                        else { loop4 = false; }
+                    }
+
+                }  
+                //usuwanie znalezionych w rzędach kulek
+                if (spr.length >= 5) {
+                    for (var i = 0; i < spr.length; i++) {
+                        var x = spr[i].split("_")[0]; //pobranie pierwszej współzędnej
+                        var y = spr[i].split("_")[1]; //pobranie drugiej współzędnej
+                        x = parseInt(x);
+                        y = parseInt(y);
+                        tab[x][y] = " ";
+                        dodacKulki = false; //ustawiam flagę na false, żeby nie dodać kulek 
+                        iloscPunktow++; //zwiększam ilośc punktów o liczbę usuniętych kulek
+                        punkty.innerHTML = iloscPunktow;
+                    }
+                    dodaj();
+                }
+                else {
+                    spr = [];
+                    prawda();
+                    sprawdzUkosy();
+                }
+
+            }
+            //funkcja sprawdzająca czy mamy 5 kulek pod rząd na ukos
+            function sprawdzUkosy() {
+                spr2 = [];
+                spr2[0] = meta;
+                var x = spr2[0].split("_")[0]; //pobranie pierwszej współzędnej
+                var y = spr2[0].split("_")[1]; //pobranie drugiej współzędnej
+                x = parseInt(x);
+                y = parseInt(y);
+                for (var i = 1; i < 9; i++) {
+                    if (loop) {//sprawdzanie w lewy dół
+                        if ((x - i) >= 0 && (y + i) <= 8 && tab[x - i][y + i] == tab[x][y]) {
+                            spr2.push((x - i) + "_" + (y + i));
+                        }
+                        else { loop = false; }
+                    }
+
+                    if (loop2) { //sprawdzanie w prawą górę
+                        if ((x + i) <= 8 && (y - i) >= 0 && tab[x + i][y - i] == tab[x][y]) {
+                            spr2.push((x + i) + "_" + (y - i));
+                        }
+                        else { loop2 = false; }
+                    }
+                    if (loop3) { //sprawdzanie w prawy dół
+                        if ((x + i) <= 8 && (y + i) <= 8 && tab[x + i][y + i] == tab[x][y]) {
+                            spr2.push((x + i) + "_" + (y + i));
+                        }
+                        else { loop3 = false; }
+
+                    }
+                    if (loop4) { //sprawdzanie w lewą górę
+                        if ((x - i) >= 0 && (y - i) >= 0 && tab[x - i][y - i] == tab[x][y]) {
+                            spr2.push((x - i) + "_" + (y - i));
+                        }
+                        else { loop4 = false; }
+                    }
+                }
+                if (spr2.length >= 5) {
+                    for (var i = 0; i < spr2.length; i++) {
+                        var x = spr2[i].split("_")[0]; //pobranie pierwszej współzędnej
+                        var y = spr2[i].split("_")[1]; //pobranie drugiej współzędnej
+                        x = parseInt(x);
+                        y = parseInt(y);
+                        tab[x][y] = " ";
+                        dodacKulki = false; //ustawiam flagę na false, żeby nie dodać kulek
+                        iloscPunktow++; //zwiększam ilośc punktów o liczbę usuniętych kulek
+                        punkty.innerHTML = iloscPunktow; //podmieniam ilość punktów
+                    }
+                    dodaj();
+                }
+                spr2 = [];
+            }
+            //funkcja kończąca grę
+            function koniec() {
+                for (var i = 0; i < IleTab; i++) {
+                    for (var j = 0; j < IleTab; j++)
+                        if (tab[i][j] != 0) {
+                            czyKoniec++;
+                        }
+                        else { }
+                }
+                if (czyKoniec >= 79) {
+                    var div = document.createElement("div"); //tworzenie elementu w każdym przebiegu pętli
+                    div.setAttribute("id", "finish"); //dodanie id do diva
+                    div.innerHTML = "<h1>Przykro mi, przegrałeś. <br> Chcesz zagrać jeszcze raz? <br> Zdobyłeś: " + iloscPunktow + " punkty.</h1>"
+                    document.body.appendChild(div);
+                }
+                else {
+                    czyKoniec = 0;
+                }
+            }
+            //funkcja zeruje zmienne
+            function prawda() {
+                loop = true;
+                loop2 = true;
+                loop3 = true;
+                loop4 = true;
+            }
+        });
+    </script>
+</head>
+
+<body>
+
+</body>
+
+</html>
